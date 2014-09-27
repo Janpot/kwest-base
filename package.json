@@ -1,0 +1,27 @@
+{
+  "name": "kwest-base",
+  "version": "0.0.1",
+  "description": "Base module for kwest",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "kwest"
+  ],
+  "author": "Jan Potoms",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^2.3.4",
+    "caseless": "^0.6.0"
+  },
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "kwest": "0.0.2",
+    "mocha": "^1.21.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Janpot/kwest-base.git"
+  }
+}
