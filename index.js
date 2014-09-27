@@ -30,9 +30,10 @@ function buildRequestObject(options) {
   var request = {
     _isKwest: true,
     uri: uri,
-    method: options.method || 'GET',
-    headers: caseless(options.headers || {})
+    method: options.method || 'GET'
   };
+
+  caseless.httpify(request, options.headers || {});
 
   if (typeof options === 'object') {
     var dontCopyKeys = Object.keys(request);
@@ -57,9 +58,6 @@ function toHttpOptions(request) {
       switch (key) {
         case '_isKwest': return;
         case 'uri': return;
-        case 'headers':
-          options.headers = request.headers.dict;
-          break;
         default: options[key] = request[key];
       }
     });
@@ -70,31 +68,14 @@ function toHttpOptions(request) {
 }
 
 
-
-function init(next) {
-
-  function makeRequest(options) {
-    return Promise.try(function () {
-      var request = buildRequestObject(options);
-      return next(request);
-    });
-  }
-
-  function wrap(middleware) {
-    var newMakeRequest = function (request) {
-      return middleware(request, next);
-    };
-    return init(newMakeRequest);
-  }
-
-
-  makeRequest.wrap = wrap;
-  return makeRequest;
-
+function kwestifyResponse(response) {
+  caseless.httpify(response, response.headers || {});
+  response.data = response;
+  return response;
 }
 
 
-var makeRequest = function (request) {
+var defaultMakeRequest = function (request) {
   var protocol = {
     'http:' : http,
     'https:': https
@@ -108,6 +89,7 @@ var makeRequest = function (request) {
       .on('response', resolve)
       .on('error', reject);
   })
+    .then(kwestifyResponse)
     .cancellable()
     .catch(Promise.CancellationError, function (err) {
       req.abort();
@@ -118,4 +100,38 @@ var makeRequest = function (request) {
   return responsePromise;
 };
 
-module.exports = init(makeRequest);
+
+function init(next) {
+
+  if (typeof next !== 'function') {
+    next = defaultMakeRequest;
+  }
+
+  function makeRequest(options) {
+    return Promise.try(function () {
+      var request = buildRequestObject(options);
+      return next(request);
+    });
+  }
+
+  function fork() {
+    return init(next);
+  }
+
+  function use(middleware) {
+    var oldNext = next;
+    next = function (request) {
+      return middleware(request, oldNext);
+    };
+    return makeRequest;
+  }
+
+
+  makeRequest.fork = fork;
+  makeRequest.use = use;
+  return makeRequest;
+
+}
+
+
+module.exports = init;
