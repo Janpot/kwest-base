@@ -8,7 +8,7 @@ var Promise  = require('bluebird'),
     https    = require('https');
 
 function isParsedUrl(url) {
-  return url && url.protocol && (url.host || url.hostname);
+  return url && url.protocol && url.hostname;
 }
 
 function buildRequestObject(options) {
@@ -28,14 +28,7 @@ function buildRequestObject(options) {
 
 
 function toHttpOptions(request) {
-  var options = {};
-  Object.keys(request)
-    .filter(function (key) {
-      return key !== 'uri';
-    })
-    .forEach(function (key) {
-      options[key] = request[key];
-    });
+  var options = defaults({}, request);
   options.hostname = request.uri.hostname;
   options.port = request.uri.port;
   options.path = request.uri.path;
@@ -56,6 +49,8 @@ var defaultMakeRequest = function (request) {
     'https:': https
   }[request.uri.protocol];
 
+  request.setHeader('host', request.uri.hostname);
+
   var options = toHttpOptions(request),
       req;
 
@@ -63,6 +58,16 @@ var defaultMakeRequest = function (request) {
     req = protocol.request(options)
       .on('response', resolve)
       .on('error', reject);
+
+    if (request.data) {
+      request.data
+        .on('error', reject)
+        .pipe(req)
+        .on('error', reject);
+      request.data.resume();
+    } else {
+      req.end();
+    }
   })
     .then(kwestifyResponse)
     .cancellable()
@@ -71,7 +76,7 @@ var defaultMakeRequest = function (request) {
       throw(err);
     });
 
-  req.end();
+  
   return responsePromise;
 };
 

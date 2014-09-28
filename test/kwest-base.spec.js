@@ -2,6 +2,7 @@ var kwest   = require('..'),
     Promise = require('bluebird'),
     urlUtil = require('url'),
     express = require('express'),
+    through = require('through'),
     assert  = require('chai').assert;
 
 describe('kwest-base', function () {
@@ -18,6 +19,7 @@ describe('kwest-base', function () {
     server = express()
       .get('/', function (req, res) {
         res.header('x-test', 'success');
+        res.header('x-host', req.headers.host);
         res.header('connection', 'close');
         res.end('hello');
       })
@@ -26,6 +28,7 @@ describe('kwest-base', function () {
         request({ uri: urlUtil.parse('http://localhost:3000') })
           .then(function (response) {
             assert.strictEqual(response.getHeader('x-test'), 'success');
+            assert.strictEqual(response.getHeader('x-host'), 'localhost');
             done();
           })
           .catch(done);
@@ -86,6 +89,42 @@ describe('kwest-base', function () {
           .spread(function (normalRes, forkRes) {
             assert.strictEqual(normalRes.getHeader('x-test'), 'success');
             assert.strictEqual(forkRes.getHeader('x-test'), 'fork-success');
+            done();
+          })
+          .catch(done);
+      });
+
+  });
+
+
+  it('should send request data', function (done) {
+
+    server = express()
+      .post('/', function (req, res) {
+        var body = '';
+        req.pipe(through(function write(chunk) {
+          body += String(chunk);
+        }, function end() {
+          res.header('x-test', body || 'fail');
+          res.header('connection', 'close');
+          res.end();
+        }));
+        
+      })
+      .listen(3000, function () {
+        var request = kwest(),
+            data    = through();
+
+        data.pause();
+        data.end('success');
+
+        request({
+          uri: urlUtil.parse('http://localhost:3000'),
+          data: data,
+          method: 'POST'
+        })
+          .then(function (response) {
+            assert.strictEqual(response.getHeader('x-test'), 'success');
             done();
           })
           .catch(done);

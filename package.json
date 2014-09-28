@@ -19,7 +19,8 @@
   "devDependencies": {
     "chai": "^1.9.1",
     "express": "^4.9.5",
-    "mocha": "^1.21.4"
+    "mocha": "^1.21.4",
+    "through": "^2.3.6"
   },
   "repository": {
     "type": "git",
