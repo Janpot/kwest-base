@@ -106,6 +106,10 @@ function init(initial) {
     });
   }
 
+  function fork() {
+    return init(initial);
+  }
+
   function use(middleware) {
     var oldNext = initial;
     initial = function (request) {
@@ -114,6 +118,7 @@ function init(initial) {
     return makeRequest;
   }
 
+  makeRequest.fork = fork;
   makeRequest.use = use;
   return makeRequest;
 
