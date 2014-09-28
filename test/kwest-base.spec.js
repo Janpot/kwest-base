@@ -1,5 +1,6 @@
 var kwest   = require('..'),
     Promise = require('bluebird'),
+    urlUtil = require('url'),
     express = require('express'),
     assert  = require('chai').assert;
 
@@ -22,7 +23,7 @@ describe('kwest-base', function () {
       })
       .listen(3000, function () {
         var request = kwest();
-        request('http://localhost:3000')
+        request({ uri: urlUtil.parse('http://localhost:3000') })
           .then(function (response) {
             assert.strictEqual(response.getHeader('x-test'), 'success');
             done();
@@ -49,7 +50,7 @@ describe('kwest-base', function () {
           });
         });
 
-        request('http://localhost:3000')
+        request({ uri: urlUtil.parse('http://localhost:3000') })
           .then(function (response) {
             assert.strictEqual(response.getHeader('x-test'), 'success');
             done();
@@ -79,8 +80,8 @@ describe('kwest-base', function () {
         });
 
         Promise.join(
-          request('http://localhost:3000'),
-          forked('http://localhost:3000')
+          request({ uri: urlUtil.parse('http://localhost:3000') }),
+          forked({ uri: urlUtil.parse('http://localhost:3000') })
         )
           .spread(function (normalRes, forkRes) {
             assert.strictEqual(normalRes.getHeader('x-test'), 'success');

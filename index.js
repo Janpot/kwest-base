@@ -8,37 +8,21 @@ var Promise  = require('bluebird'),
     https    = require('https');
 
 function isParsedUrl(url) {
-  return url.protocol && (url.host || url.hostname);
-}
-
-function readUri(options) {
-  if (!options) {
-    return undefined;
-  } if (typeof options === 'string') {
-    return urlUtil.parse(options);
-  } else if (typeof options.uri === 'string') {
-    return urlUtil.parse(options.uri);
-  } else if (isParsedUrl(options.uri)) {
-    return options.uri;
-  }
-  return undefined;
+  return url && url.protocol && (url.host || url.hostname);
 }
 
 function buildRequestObject(options) {
-  var uri = readUri(options);
-
-  if (!uri) {
-    throw new Error('Must define at least a valid uri');
+  if (!isParsedUrl(options.uri)) {
+    throw new Error('Must define at least a valid parsed url object');
   }
 
   var request = {
-    _isKwest: true,
-    uri: uri,
+    uri: options.uri,
     method: options.method || 'GET'
   };
-
   caseless.httpify(request, options.headers || {});
   defaults(request, options);
+
   return request;
 }
 
@@ -46,12 +30,11 @@ function buildRequestObject(options) {
 function toHttpOptions(request) {
   var options = {};
   Object.keys(request)
+    .filter(function (key) {
+      return key !== 'uri';
+    })
     .forEach(function (key) {
-      switch (key) {
-        case '_isKwest': return;
-        case 'uri': return;
-        default: options[key] = request[key];
-      }
+      options[key] = request[key];
     });
   options.hostname = request.uri.hostname;
   options.port = request.uri.port;
