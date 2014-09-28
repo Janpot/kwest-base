@@ -3,6 +3,7 @@
 var Promise  = require('bluebird'),
     urlUtil  = require('url'),
     caseless = require('caseless'),
+    defaults = require('merge-defaults'),
     http     = require('http'),
     https    = require('https');
 
@@ -10,43 +11,41 @@ function isParsedUrl(url) {
   return url.protocol && (url.host || url.hostname);
 }
 
-function buildRequestObject(options) {
-  if (options._isKwest) {
-    return options;
+function readUri(options) {
+  if (!options) {
+    return undefined;
+  } if (typeof options === 'string') {
+    return urlUtil.parse(options);
+  } else if (typeof options.uri === 'string') {
+    return urlUtil.parse(options.uri);
+  } else if (isParsedUrl(options.uri)) {
+    return options.uri;
+  }
+  return undefined;
+}
+
+function buildRequestObject(options, defaultOptions) {
+  var uri = readUri(options);
+
+  if (!uri && defaultOptions) {
+    uri = readUri(defaultOptions);
   }
 
-  var uri;
-
-  if (typeof options === 'string') {
-    uri = urlUtil.parse(options);
-  } else if (typeof options.uri === 'string') {
-    uri = urlUtil.parse(options.uri);
-  } else if (isParsedUrl(options.uri)) {
-    uri = options.uri;
-  } else {
+  if (!uri) {
     throw new Error('Must define at least a valid uri');
   }
+
+  var defaultMethod = defaultOptions && defaultOptions.method || 'GET';
 
   var request = {
     _isKwest: true,
     uri: uri,
-    method: options.method || 'GET'
+    method: options.method || defaultMethod
   };
 
   caseless.httpify(request, options.headers || {});
-
-  if (typeof options === 'object') {
-    var dontCopyKeys = Object.keys(request);
-
-    Object.keys(options)
-      .filter(function (key) {
-        return dontCopyKeys.indexOf(key) >= 0;
-      })
-      .forEach(function (key) {
-        request[key] = options[key];
-      });
-  }
-
+  defaults(request, options);
+  defaults(request, defaultOptions);
   return request;
 }
 
@@ -101,7 +100,7 @@ var defaultMakeRequest = function (request) {
 };
 
 
-function init(next) {
+function init(defaultOptions, next) {
 
   if (typeof next !== 'function') {
     next = defaultMakeRequest;
@@ -109,13 +108,9 @@ function init(next) {
 
   function makeRequest(options) {
     return Promise.try(function () {
-      var request = buildRequestObject(options);
+      var request = buildRequestObject(options, defaultOptions);
       return next(request);
     });
-  }
-
-  function fork() {
-    return init(next);
   }
 
   function use(middleware) {
@@ -126,8 +121,6 @@ function init(next) {
     return makeRequest;
   }
 
-
-  makeRequest.fork = fork;
   makeRequest.use = use;
   return makeRequest;
 
