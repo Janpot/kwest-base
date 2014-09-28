@@ -24,28 +24,21 @@ function readUri(options) {
   return undefined;
 }
 
-function buildRequestObject(options, defaultOptions) {
+function buildRequestObject(options) {
   var uri = readUri(options);
-
-  if (!uri && defaultOptions) {
-    uri = readUri(defaultOptions);
-  }
 
   if (!uri) {
     throw new Error('Must define at least a valid uri');
   }
 
-  var defaultMethod = defaultOptions && defaultOptions.method || 'GET';
-
   var request = {
     _isKwest: true,
     uri: uri,
-    method: options.method || defaultMethod
+    method: options.method || 'GET'
   };
 
   caseless.httpify(request, options.headers || {});
   defaults(request, options);
-  defaults(request, defaultOptions);
   return request;
 }
 
@@ -100,22 +93,22 @@ var defaultMakeRequest = function (request) {
 };
 
 
-function init(defaultOptions, next) {
+function init(initial) {
 
-  if (typeof next !== 'function') {
-    next = defaultMakeRequest;
+  if (typeof initial !== 'function') {
+    initial = defaultMakeRequest;
   }
 
   function makeRequest(options) {
     return Promise.try(function () {
-      var request = buildRequestObject(options, defaultOptions);
-      return next(request);
+      var request = buildRequestObject(options);
+      return initial(request);
     });
   }
 
   function use(middleware) {
-    var oldNext = next;
-    next = function (request) {
+    var oldNext = initial;
+    initial = function (request) {
       return middleware(request, oldNext);
     };
     return makeRequest;

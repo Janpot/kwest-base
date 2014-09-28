@@ -31,30 +31,6 @@ describe('kwest-base', function () {
 
   });
 
-  it('should use default header', function (done) {
-
-    server = express()
-      .get('/', function (req, res) {
-        res.header('x-test', req.headers['x-test']);
-        res.header('connection', 'close');
-        res.end('hello');
-      })
-      .listen(3000, function () {
-        var request = kwest({
-          headers: {
-            'x-test': 'success'
-          }
-        });
-        request('http://localhost:3000')
-          .then(function (response) {
-            assert.strictEqual(response.getHeader('x-test'), 'success');
-            done();
-          })
-          .catch(done);
-      });
-
-  });
-
   it('should use a middleware', function (done) {
 
     server = express()

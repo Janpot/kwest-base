@@ -1,6 +1,6 @@
 # kwest-base [![Build Status][travis-image]][travis-url] [![Dependency Status][depstat-image]][depstat-url]
 
-Base module for [kwest](https://github.com/Janpot/kwest) module.
+Base module for [kwest](https://github.com/Janpot/kwest) module. Handles attaching middleware and normalizing requests and responses.
 
 ## Installation
 
